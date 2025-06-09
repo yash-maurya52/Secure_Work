@@ -1,10 +1,14 @@
 stages:
   - security_scan
 
-semgrep_scan:
+semgrep_security_scan:
   stage: security_scan
   tags:
-    - local-runner
+    - semgrep  # must match the tag you used when registering the runner
   script:
-    - echo "Running Semgrep scan..."
-    - semgrep --config auto .
+    - echo "🔍 Starting Semgrep scan for OWASP Top 10 and common security issues..."
+    - semgrep --config "p/owasp-top-ten" --config "p/security-audit" --config "p/cwe-top-25" --error
+  only:
+    - branches
+  except:
+    - tags
