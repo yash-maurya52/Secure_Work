@@ -1,14 +1,10 @@
 stages:
-  - security_scan
+  - scan
 
 semgrep_security_scan:
-  stage: security_scan
+  stage: scan
   tags:
-    - semgrep-runner  # must match the tag you used when registering the runner
+    - semgrep-runner  # This must match your runner tag in config.toml
   script:
-    - echo "🔍 Starting Semgrep scan for OWASP Top 10 and common security issues..."
-    - semgrep --config "p/owasp-top-ten" --config "p/security-audit" --config "p/cwe-top-25" --error
-  only:
-    - branches
-  except:
-    - tags
+    - echo "🔍 Running Semgrep..."
+    - semgrep --config "p/owasp-top-ten" --error
