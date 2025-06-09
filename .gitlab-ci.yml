@@ -1,0 +1,10 @@
+stages:
+  - security_scan
+
+semgrep_scan:
+  stage: security_scan
+  tags:
+    - local-runner
+  script:
+    - echo "Running Semgrep scan..."
+    - semgrep --config auto .
