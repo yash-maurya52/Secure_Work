@@ -2,16 +2,15 @@ include:
   - template: Security/SAST.gitlab-ci.yml
 
 stages:
-  - .pre
-  - security_scan  # Your custom stage
-  - test           # Required for SAST template jobs
-  - .post
+  - security_scan
+  - test  # Required for template SAST jobs
 
 variables:
-  SEMGREP_RULES: "p/owasp-top-ten"
+  SEMGREP_RULES: "p/security-audit"  # More aggressive than owasp-top-ten
+  SEMGREP_SEVERITY: "ERROR"          # Only show high-confidence findings
 
 scan_changed_python_files:
-  stage: security_scan  # Your job runs here
+  stage: security_scan
   image: python:3.9-alpine
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
@@ -27,7 +26,12 @@ scan_changed_python_files:
         exit 0
       else
         echo "Scanning: $CHANGED_PY_FILES"
-        semgrep --config="$SEMGREP_RULES" --sarif --output=semgrep.sarif $CHANGED_PY_FILES
+        semgrep --config="$SEMGREP_RULES" \
+                --severity="$SEMGREP_SEVERITY" \
+                --error \
+                --sarif \
+                --output=semgrep.sarif \
+                $CHANGED_PY_FILES
       fi
   artifacts:
     when: always
