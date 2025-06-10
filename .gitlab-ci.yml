@@ -8,3 +8,6 @@ semgrep_security_scan:
   script:
     - echo "🔍 Running Semgrep..."
     - semgrep --config "p/owasp-top-ten" --error
+  retry:
+    max: 2
+    when: runner_system_failure
