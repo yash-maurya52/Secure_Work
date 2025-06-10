@@ -4,10 +4,17 @@ stages:
 semgrep_security_scan:
   stage: scan
   tags:
-    - semgrep-runner  # This must match your runner tag in config.toml
+    - semgrep-runner
+  image: returntocorp/semgrep:latest  # Explicit container ensures correct version
   script:
-    - echo "🔍 Running Semgrep..."
-    - semgrep --config "p/owasp-top-ten" --error
+    - echo "🔍 Running Semgrep scan with OWASP Top Ten rules..."
+    - semgrep --config "p/owasp-top-ten" --error --verbose
+  artifacts:
+    when: always
+    paths:
+      - semgrep.sarif
+    reports:
+      sast: semgrep.sarif
   retry:
     max: 2
     when: runner_system_failure
