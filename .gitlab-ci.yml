@@ -1,21 +1,43 @@
 stages:
-  - test
-
-include:
-  - template: Security/SAST.gitlab-ci.yml
+  - security_scan
 
 variables:
-  # Enable Semgrep with OWASP rules (GitLab's built-in version)
-  SAST_DEFAULT_ANALYZERS: "semgrep"
-  SEMGREP_RULES: "p/owasp-top-ten"  # GitLab's predefined rule set
-  SAST_DISABLE_DIND: "true"         # Disable Docker-in-Docker if not needed
+  # Use GitLab's built-in Semgrep with OWASP rules
+  SEMGREP_RULES: "p/owasp-top-ten"
+  # Output report format
+  SAST_REPORT_FORMAT: "sarif"
 
-# Optional: Override the SAST job to add custom behavior
-sast:
-  stage: test
-  artifacts:
-    reports:
-      sast: gl-sast-report.json
+scan_changed_python_files:
+  stage: security_scan
+  image: alpine  # Lightweight base image
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'  # Run only on direct pushes (not MRs)
   script:
-    - echo "Using GitLab's built-in Semgrep scanner with OWASP rules..."
-    - /analyzer run
+    - apk add --no-cache git  # Install git
+    - |
+      echo "🔍 Identifying changed Python files..."
+      # Get list of changed .py files in this commit
+      CHANGED_PY_FILES=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD | grep '\.py$')
+      
+      if [ -z "$CHANGED_PY_FILES" ]; then
+        echo "No Python files changed - skipping scan"
+        exit 0
+      else
+        echo "Changed files to scan:"
+        echo "$CHANGED_PY_FILES"
+      fi
+
+    - |
+      # Install Semgrep (GitLab's version)
+      wget -qO- https://semgrep.dev/install | sh
+      export PATH="$PATH:/root/.local/bin"
+
+      # Scan each changed file
+      for file in $CHANGED_PY_FILES; do
+        echo "Scanning $file..."
+        semgrep --config="$SEMGREP_RULES" --error --verbose "$file"
+      done
+  artifacts:
+    when: always
+    reports:
+      sast: semgrep.sarif
