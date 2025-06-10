@@ -1,30 +1,21 @@
-# You can override the included template(s) by including variable overrides
-# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
-# Secret Detection customization: https://docs.gitlab.com/user/application_security/secret_detection/pipeline/configure
-# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
-# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
-# Note that environment variables can be set in several places
-# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
 stages:
-- scan
-- test
-semgrep_security_scan:
-  stage: scan
-  #tags:
-  #- local-runner
-  script:
-  - "echo \"\U0001F50D Running Semgrep scan with OWASP Top Ten rules...\""
-  - semgrep --config "p/owasp-top-ten" --error --verbose
-  artifacts:
-    when: always
-    paths:
-    - semgrep.sarif
-    reports:
-      sast: semgrep.sarif
-  retry:
-    max: 2
-    when: runner_system_failure
+  - test
+
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
+variables:
+  # Enable Semgrep with OWASP rules (GitLab's built-in version)
+  SAST_DEFAULT_ANALYZERS: "semgrep"
+  SEMGREP_RULES: "p/owasp-top-ten"  # GitLab's predefined rule set
+  SAST_DISABLE_DIND: "true"         # Disable Docker-in-Docker if not needed
+
+# Optional: Override the SAST job to add custom behavior
 sast:
   stage: test
-include:
-- template: Security/SAST.gitlab-ci.yml
+  artifacts:
+    reports:
+      sast: gl-sast-report.json
+  script:
+    - echo "Using GitLab's built-in Semgrep scanner with OWASP rules..."
+    - /analyzer run
