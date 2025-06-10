@@ -3,37 +3,29 @@ include:
 
 stages:
   - security_scan
-  - test
 
 variables:
-  SEMGREP_RULES: p/owasp-top-ten
-  SAST_REPORT_FORMAT: sarif
+  SEMGREP_RULES: "p/owasp-top-ten"
 
 scan_changed_python_files:
   stage: security_scan
-  image: alpine
+  image: python:3.9-alpine  # Better than plain Alpine for Python tools
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
   before_script:
-    - apk add --no-cache git wget python3 py3-pip
+    - apk add --no-cache git  # Required for `git diff`
+    - pip install semgrep  # More reliable than wget install
   script:
-    - echo "🔍 Identifying changed Python files..."
+    - echo "🔍 Checking for changed Python files..."
     - CHANGED_PY_FILES=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD | grep '\.py$' || true)
     - |
       if [ -z "$CHANGED_PY_FILES" ]; then
-        echo "No Python files changed - skipping scan"
+        echo "No Python files changed. Skipping scan."
         exit 0
       else
-        echo "Changed files to scan:"
-        echo "$CHANGED_PY_FILES"
+        echo "Scanning: $CHANGED_PY_FILES"
+        semgrep --config="$SEMGREP_RULES" --sarif --output=semgrep.sarif $CHANGED_PY_FILES
       fi
-    - python3 -m pip install semgrep
-    - export PATH="$PATH:/root/.local/bin"
-    - |
-      for file in $CHANGED_PY_FILES; do
-        echo "Scanning $file..."
-        semgrep --config="$SEMGREP_RULES" --sarif --output=semgrep.sarif "$file"
-      done
   artifacts:
     when: always
     reports:
