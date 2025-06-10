@@ -5,9 +5,9 @@ stages:
   - security_scan
 
 variables:
-  SEMGREP_RULES: "r/python.sql-injection"  # Direct SQLi rule
-  SEMGREP_SEVERITY: "WARNING"              # Force detection
-  SEMGREP_NO_GIT_IGNORE: "true"            # Scan ignored files
+  SEMGREP_RULES: "r/python.sql-injection"
+  SEMGREP_SEVERITY: "WARNING"
+  SEMGREP_NO_GIT_IGNORE: "true"
 
 semgrep_scan:
   stage: security_scan
@@ -15,22 +15,12 @@ semgrep_scan:
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
   before_script:
-    - apk add --no-cache git  # Required for Git tracking
+    - apk add --no-cache git
     - pip install semgrep --quiet
   script:
     - echo "🔍 Running Semgrep (strict mode)..."
-    # Generate SARIF report + debug logs
-    - semgrep --config="$SEMGREP_RULES" \
-              --severity="$SEMGREP_SEVERITY" \
-              --strict \
-              --sarif \
-              --output=semgrep.sarif \
-              --error \
-              --verbose \
-              .
-    # Verify SARIF file exists (critical!)
+    - semgrep --config="$SEMGREP_RULES" --severity="$SEMGREP_SEVERITY" --strict --sarif --output=semgrep.sarif --error --verbose .
     - ls -la semgrep.sarif || echo "ERROR: SARIF file not generated!"
-    # Print findings for debugging
     - cat semgrep.sarif | grep '"message"' || echo "No issues found."
   artifacts:
     when: always
