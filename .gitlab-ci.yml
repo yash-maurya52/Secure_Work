@@ -2,19 +2,22 @@ include:
   - template: Security/SAST.gitlab-ci.yml
 
 stages:
-  - security_scan
+  - .pre
+  - security_scan  # Your custom stage
+  - test           # Required for SAST template jobs
+  - .post
 
 variables:
   SEMGREP_RULES: "p/owasp-top-ten"
 
 scan_changed_python_files:
-  stage: security_scan
-  image: python:3.9-alpine  # Better than plain Alpine for Python tools
+  stage: security_scan  # Your job runs here
+  image: python:3.9-alpine
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
   before_script:
-    - apk add --no-cache git  # Required for `git diff`
-    - pip install semgrep  # More reliable than wget install
+    - apk add --no-cache git
+    - pip install semgrep
   script:
     - echo "🔍 Checking for changed Python files..."
     - CHANGED_PY_FILES=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD | grep '\.py$' || true)
