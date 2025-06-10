@@ -11,7 +11,7 @@ stages:
 semgrep_security_scan:
   stage: scan
   tags:
-  - semgrep-runner
+  - local-runner
   script:
   - "echo \"\U0001F50D Running Semgrep scan with OWASP Top Ten rules...\""
   - semgrep --config "p/owasp-top-ten" --error --verbose
