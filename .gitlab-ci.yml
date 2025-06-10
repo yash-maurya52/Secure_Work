@@ -1,19 +1,30 @@
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/user/application_security/secret_detection/pipeline/configure
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
 stages:
-  - scan
-
+- scan
+- test
 semgrep_security_scan:
   stage: scan
   tags:
-    - semgrep-runner  # Must match your local runner's tag
+  - semgrep-runner
   script:
-    - echo "🔍 Running Semgrep scan with OWASP Top Ten rules..."
-    - semgrep --config "p/owasp-top-ten" --error --verbose
+  - "echo \"\U0001F50D Running Semgrep scan with OWASP Top Ten rules...\""
+  - semgrep --config "p/owasp-top-ten" --error --verbose
   artifacts:
     when: always
     paths:
-      - semgrep.sarif
+    - semgrep.sarif
     reports:
       sast: semgrep.sarif
   retry:
     max: 2
     when: runner_system_failure
+sast:
+  stage: test
+include:
+- template: Security/SAST.gitlab-ci.yml
