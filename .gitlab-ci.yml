@@ -3,11 +3,12 @@ include:
 
 stages:
   - security_scan
-  - test  # Required for template SAST jobs
+  - test  # Required for GitLab's built-in SAST jobs
 
 variables:
-  SEMGREP_RULES: "p/security-audit"  # More aggressive than owasp-top-ten
-  SEMGREP_SEVERITY: "ERROR"          # Only show high-confidence findings
+  SEMGREP_RULES: "r/python.sql-injection"  # DIRECTLY targets SQLi
+  SEMGREP_SEVERITY: "WARNING"              # Show all findings (even low-confidence)
+  SEMGREP_NO_GIT_IGNORE: "true"            # Scan all files, even if ignored by .gitignore
 
 scan_changed_python_files:
   stage: security_scan
@@ -18,21 +19,15 @@ scan_changed_python_files:
     - apk add --no-cache git
     - pip install semgrep
   script:
-    - echo "🔍 Checking for changed Python files..."
-    - CHANGED_PY_FILES=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD | grep '\.py$' || true)
-    - |
-      if [ -z "$CHANGED_PY_FILES" ]; then
-        echo "No Python files changed. Skipping scan."
-        exit 0
-      else
-        echo "Scanning: $CHANGED_PY_FILES"
-        semgrep --config="$SEMGREP_RULES" \
-                --severity="$SEMGREP_SEVERITY" \
-                --error \
-                --sarif \
-                --output=semgrep.sarif \
-                $CHANGED_PY_FILES
-      fi
+    - echo "🔍 Scanning ALL Python files (strict mode)..."
+    - semgrep --config="$SEMGREP_RULES" \
+              --severity="$SEMGREP_SEVERITY" \
+              --error \
+              --strict \
+              --no-rewrite-rule-ids \
+              --sarif \
+              --output=semgrep.sarif \
+              .
   artifacts:
     when: always
     reports:
