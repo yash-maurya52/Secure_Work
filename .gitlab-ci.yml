@@ -1,4 +1,4 @@
-# Generalized GitLab CI for comprehensive Semgrep SAST scanning
+# Generalized GitLab CI for comprehensive Semgrep SAST scanning and advanced Python security analysis
 # Docs:
 # Semgrep Customization: https://semgrep.dev/docs/semgrep-ci/sample-ci-configs/gitlab/
 # GitLab SAST Integration: https://docs.gitlab.com/ee/user/application_security/sast/
@@ -9,10 +9,10 @@ stages:
 
 # Variables for Semgrep configuration
 variables:
-  # Use the default Semgrep ruleset for general vulnerability detection across multiple languages
-  SEMGREP_RULES: p/default
+  SEMGREP_RULES: p/default  # Use default Semgrep rules for multi-language detection
   SEMGREP_SEVERITY: WARNING  # Set to WARNING, ERROR, or INFO based on strictness
   SEMGREP_NO_GIT_IGNORE: 'true'  # Ensures all files are scanned
+  PYTHONPATH: "."
 
 # Semgrep scan job
 semgrep_scan:
@@ -31,7 +31,63 @@ semgrep_scan:
     reports:
       sast: semgrep.sarif
 
-# Include GitLab's built-in SAST template to run additional analyzers
+# Extended Python-specific vulnerability scanning (runs in 'test' stage)
+bandit_test:
+  stage: test
+  image: python:3.10
+  script:
+    - pip install bandit
+    - bandit -r . -f json -o bandit_report.json || true
+  artifacts:
+    paths:
+      - bandit_report.json
+    when: always
+  rules:
+    - exists:
+        - "*.py"
+
+safety_test:
+  stage: test
+  image: python:3.10
+  script:
+    - pip install safety
+    - pip freeze > requirements.txt
+    - safety check -r requirements.txt --json > safety_cve.json || true
+  artifacts:
+    paths:
+      - safety_cve.json
+    when: always
+  rules:
+    - exists:
+        - "*.py"
+
+trufflehog_test:
+  stage: test
+  image: trufflesecurity/trufflehog:latest
+  script:
+    - trufflehog filesystem . --json > trufflehog_secrets.json || true
+  artifacts:
+    paths:
+      - trufflehog_secrets.json
+    when: always
+  rules:
+    - exists:
+        - "*.py"
+
+pylint_test:
+  stage: test
+  image: python:3.10
+  script:
+    - pip install pylint
+    - find . -name "*.py" | xargs pylint --exit-zero --output-format=json > pylint_report.json || true
+  artifacts:
+    paths:
+      - pylint_report.json
+    when: always
+  rules:
+    - exists:
+        - "*.py"
+
 include:
-- template: Security/SAST.gitlab-ci.yml
-- template: Security/SAST-IaC.latest.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/SAST-IaC.latest.gitlab-ci.yml
