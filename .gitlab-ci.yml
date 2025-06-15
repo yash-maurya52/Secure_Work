@@ -65,7 +65,7 @@ trufflehog_test:
   stage: test
   image: trufflesecurity/trufflehog:latest
   script:
-    - trufflehog filesystem . --json > trufflehog_secrets.json || true
+    - trufflehog filesystem --path . --format json --output trufflehog_secrets.json || true
   artifacts:
     paths:
       - trufflehog_secrets.json
@@ -73,6 +73,7 @@ trufflehog_test:
   rules:
     - exists:
         - "*.py"
+
 
 pylint_test:
   stage: test
