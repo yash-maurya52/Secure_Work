@@ -63,10 +63,9 @@ safety_test:
 
 trufflehog_test:
   stage: test
-  image: alpine:latest
+  image: python:3.10
   before_script:
-    - apk add --no-cache python3 py3-pip git
-    - pip3 install trufflehog
+    - pip install trufflehog==3.49.0
   script:
     - trufflehog filesystem --path . --format json --output trufflehog_secrets.json || true
   artifacts:
@@ -76,6 +75,7 @@ trufflehog_test:
   rules:
     - exists:
         - "*.py"
+
 
 
 pylint_test:
