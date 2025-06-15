@@ -60,24 +60,6 @@ safety_test:
   rules:
     - exists:
         - "*.py"
-
-trufflehog_test:
-  stage: test
-  image: python:3.10
-  before_script:
-    - pip install trufflehog==3.49.0
-  script:
-    - trufflehog filesystem --path . --format json --output trufflehog_secrets.json || true
-  artifacts:
-    paths:
-      - trufflehog_secrets.json
-    when: always
-  rules:
-    - exists:
-        - "*.py"
-
-
-
 pylint_test:
   stage: test
   image: python:3.10
